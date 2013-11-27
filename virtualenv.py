@@ -717,6 +717,12 @@ def main():
         action='store_true',
         help='Do not install pip in the new virtualenv.')
 
+    parser.add_option(
+        '--no-ipython',
+        dest='no_ipython',
+        action='store_true',
+        help='Do not install ipython in the new virtualenv.')
+
     default_search_dirs = file_search_dirs()
     parser.add_option(
         '--extra-search-dir',
@@ -818,6 +824,7 @@ def main():
                        never_download=True,
                        no_setuptools=options.no_setuptools,
                        no_pip=options.no_pip,
+                       no_ipython=options.no_ipython,
                        symlink=options.symlink)
     if 'after_install' in globals():
         after_install(options, home_dir)
@@ -907,7 +914,8 @@ def filter_install_output(line):
         return Logger.INFO
     return Logger.DEBUG
 
-def install_sdist(project_name, sdist, py_executable, search_dirs=None):
+def install_sdist(project_name, sdist, py_executable, search_dirs=None, 
+                  svem_flag=True):
 
     if search_dirs is None:
         search_dirs = file_search_dirs()
@@ -923,8 +931,9 @@ def install_sdist(project_name, sdist, py_executable, search_dirs=None):
         tar.close()
         srcdir = os.path.join(tmpdir, os.listdir(tmpdir)[0])
         cmd = [py_executable, 'setup.py', 'install',
-            '--single-version-externally-managed',
             '--record', 'record']
+        if svem_flag:
+            cmd.append('--single-version-externally-managed')
         logger.start_progress('Installing %s...' % project_name)
         logger.indent += 2
         try:
@@ -939,7 +948,8 @@ def install_sdist(project_name, sdist, py_executable, search_dirs=None):
 def create_environment(home_dir, site_packages=False, clear=False,
                        unzip_setuptools=False,
                        prompt=None, search_dirs=None, never_download=False,
-                       no_setuptools=False, no_pip=False, symlink=True):
+                       no_setuptools=False, no_pip=False, no_ipython=False,
+                       symlink=True):
     """
     Creates a new environment in ``home_dir``.
 
@@ -961,7 +971,9 @@ def create_environment(home_dir, site_packages=False, clear=False,
         install_sdist('Setuptools', 'setuptools-*.tar.gz', py_executable, search_dirs)
         if not no_pip:
             install_sdist('Pip', 'pip-*.tar.gz', py_executable, search_dirs)
-
+        if not no_ipython:
+            install_sdist('IPython', 'ipython-*.tar.gz', py_executable, search_dirs, 
+                svem_flag=False)
     install_activate(home_dir, bin_dir, prompt)
 
 def is_executable_file(fpath):
